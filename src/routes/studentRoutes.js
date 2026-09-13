@@ -44,7 +44,7 @@ router.post("/", (req, res) => {
       return res.status(500).json({ message: "Database error" });
     }
 
-    res.status(200).json({
+    res.status(201).json({
       id: result.insertId,
       name,
       email,
