@@ -1,0 +1,66 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          MYSQL_DATABASE: student_management
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Set up database table
+        run: |
+          mysql -h 127.0.0.1 -u root -p"${{ secrets.DB_PASSWORD }}" student_management -e "
+          CREATE TABLE students (
+              id INT AUTO_INCREMENT PRIMARY KEY,
+              name VARCHAR(100) NOT NULL,
+              email VARCHAR(100) NOT NULL UNIQUE,
+              branch VARCHAR(50),
+              year INT
+          );
+          INSERT INTO students (name, email, branch, year) VALUES
+          ('Rahul Sharma', 'rahul@example.com', 'IT', 3),
+          ('Priya Verma', 'priya@example.com', 'CSE', 2);
+          "
+
+      - name: Start server
+        run: |
+          node src/server.js &
+          sleep 3
+        env:
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_NAME: student_management
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Run API tests with Newman
+        run: newman run postman/Student_API_Collection.json
