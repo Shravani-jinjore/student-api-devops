@@ -64,3 +64,4 @@ jobs:
 
       - name: Run API tests with Newman
         run: newman run postman/Student_API_Collection.json
+
